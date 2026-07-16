@@ -1,105 +1,52 @@
-# Airport Project - Models Diagram
+# Airport API Project
 
 ```mermaid
 erDiagram
-    COUNTRY ||--o{ CITY : "has"
-    COUNTRY ||--o{ AIRPORT : "located_in"
-    COUNTRY ||--o{ AIRLINE : "based_in"
+  USERS ||--o{ TICKETS : buys
+  COUNTRIES ||--o{ AIRPORTS : has
+  AIRPORTS }o--o{ AIRLINES : serves
+  AIRLINES ||--o{ AIRPLANES : owns
+  AIRPLANES ||--o{ FLIGHTS : operates
+  FLIGHTS ||--o{ TICKETS : includes
 
-    CITY ||--o{ AIRPORT : "has"
-
-    AIRPORT }o--o{ AIRLINE : "serves"
-    AIRLINE ||--o{ AIRPLANE : "owns"
-
-    SEATTYPE }o--o{ AIRPLANE : "configured_for"
-    AIRPLANE ||--o{ SEAT : "contains"
-    AIRPLANE ||--o{ FLIGHT : "used_for"
-
-    AIRPORT ||--o{ FLIGHT : "departure_airport"
-    AIRPORT ||--o{ FLIGHT : "arrival_airport"
-
-    FLIGHT ||--o{ TICKET : "has"
-    SEAT ||--o{ TICKET : "assigned_to"
-    USER ||--o{ TICKET : "buys"
-
-    COUNTRY {
-        int id
-        string name
-        string code
-    }
-
-    CITY {
-        int id
-        string name
-        int country_id
-    }
-
-    AIRPORT {
-        int id
-        string code
-        int country_id
-        int city_id
-    }
-
-    AIRLINE {
-        int id
-        string name
-        int founded_year
-        string headquarters
-        int country_id
-    }
-
-    SEATTYPE {
-        int id
-        string seat_class
-        int num_seats
-        int num_rows
-        int seats_in_row
-    }
-
-    AIRPLANE {
-        int id
-        string model
-        string reg_number
-        int airline_id
-    }
-
-    SEAT {
-        int id
-        string seat_number
-        int row
-        string seat_class
-        int airplane_id
-    }
-
-    FLIGHT {
-        int id
-        string status
-        datetime departure
-        datetime arrival
-        int from_airport_id
-        int to_airport_id
-        int airplane_id
-    }
-
-    TICKET {
-        int id
-        string status
-        datetime created_at
-        int seat_id
-        int flight_id
-        int user_id
-    }
-
-    USER {
-        int id
-        string username
-        string role
-    }
+  USERS {
+    int id PK
+    string email
+    string role "ENUM: admin, user"
+  }
+  COUNTRIES {
+    int id PK
+    string name
+  }
+  AIRPORTS {
+    int id PK
+    string name
+    string code
+    int country_id FK
+  }
+  AIRLINES {
+    int id PK
+    string name
+    string code
+  }
+  AIRPLANES {
+    int id PK
+    string model
+    int capacity
+    int airline_id FK
+  }
+  FLIGHTS {
+    int id PK
+    string flight_number
+    string status "ENUM: scheduled, boarding..."
+    datetime departure_time
+    int airplane_id FK
+  }
+  TICKETS {
+    int id PK
+    string status "ENUM: booked, cancelled..."
+    decimal price
+    int flight_id FK
+    int user_id FK
+  }
 ```
-
-## Notes
-
-- `Airline.airport` is `ManyToManyField`, so the diagram shows `AIRPORT }o--o{ AIRLINE`.
-- `Airplane.seat_type` is `ManyToManyField`, so `AIRPLANE` does not have `seat_type_id`.
-- `Ticket` connects `USER`, `FLIGHT`, and `SEAT`; this is where a user's seat assignment should live.
