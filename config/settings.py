@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+from decouple import config
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -39,14 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'drf_spectacular',
-    'django_extensions',
+
 
     'users',
     'airports',
-    'airlines',
-    'airplanes',
     'flights',
-    'tickets',
+
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -90,7 +88,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'airport_db',
         'USER': 'myuser',
-        'PASSWORD': 'mypassword',
+        'PASSWORD': 'markdoc15',
         'HOST': 'db',
         'PORT': '5432',
     }
