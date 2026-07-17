@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: airport_db
       POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_PASSWORD: markdoc15
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
