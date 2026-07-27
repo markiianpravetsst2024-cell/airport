@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import Country, Airport, Airline, Airplane, City
-from .serializers import CountrySerializer, AirportSerializer, AirlineSerializer, AirplaneSerializer, CitySerializer
+from .serializers import CountrySerializer, AirportSerializer, AirlineSerializer, AirplaneSerializer, CitySerializer, AirportReadSerializer
 
 class CountryListAPIView(APIView):
     def get(self, request):
@@ -79,7 +79,10 @@ class CityDetailAPIView(APIView):
 
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
-    serializer_class = AirportSerializer
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return AirportReadSerializer
+        return AirportSerializer
 
 class AirlineViewSet(viewsets.ModelViewSet):
     queryset = Airline.objects.all()
