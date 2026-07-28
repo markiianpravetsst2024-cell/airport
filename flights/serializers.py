@@ -1,3 +1,5 @@
+from airports.serializers import AirplaneSerializer, AirportSerializer
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Flight, Ticket
 
@@ -8,16 +10,41 @@ class FlightSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     def validate(self, data):
-        if data.get('arrival_time') and data.get('departure_time'):
-            if data['arrival_time'] <= data['departure_time']:
-                raise serializers.ValidationError({"arrival_time":"The arrival time must be later than the departure time."})
+            departure_time = data.get('departure_time', getattr(self.instance, 'departure_time', None))
+            arrival_time = data.get('arrival_time', getattr(self.instance, 'arrival_time', None))
+            departure_airport = data.get('departure_airport', getattr(self.instance, 'departure_airport', None))
+            arrival_airport = data.get('arrival_airport', getattr(self.instance, 'arrival_airport', None))
+            if self.instance is None and departure_time and departure_time <= timezone.now():
+                raise serializers.ValidationError({"departure_time": "Departure time must be in the future for a new flight."})
+            if arrival_time and departure_time:
+                if arrival_time <= departure_time:
+                    raise serializers.ValidationError({"arrival_time":"The arrival time must be later than the departure time."})
+            if  departure_airport == arrival_airport:
+                        raise serializers.ValidationError({"arrival_airport": "The departure and arrival airports cannot be the same."})
+            return data
 
-        if  data.get('departure_airport') == data.get('arrival_airport'):
-            raise serializers.ValidationError({"arrival_airport": "The departure and arrival airports cannot be the same."})
-        return data
+
+class FlightReadSerializer(serializers.ModelSerializer):
+    airplane = AirplaneSerializer(read_only=True)
+    departure_airport = AirportSerializer(read_only=True)
+    arrival_airport = AirportSerializer(read_only=True)
+    class Meta:
+        model = Flight
+        fields =  ['id', 'flight_number', 'airplane', 'departure_airport', 'arrival_airport', 'departure_time', 'arrival_time', 'status']
+
 
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = ['id', 'user', 'flight', 'seat_number', 'price', 'status']
         read_only_fields = ['id']
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Ticket price must be greater than zero.")
+        return value
+
+    def validate_status(self, value):
+        if self.instance is None and value != Ticket.Status.BOOKED:
+            raise serializers.ValidationError("A new ticket must be created with status 'booked'.")
+        return value
