@@ -37,7 +37,7 @@ class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = ['id', 'user', 'flight', 'seat_number', 'price', 'status']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'user']
 
     def validate_price(self, value):
         if value <= 0:
