@@ -1,7 +1,8 @@
 from airports.serializers import AirplaneSerializer, AirportSerializer
 from django.utils import timezone
 from rest_framework import serializers
-from .models import Flight, Ticket
+from .models import Flight, Ticket, Order
+from django.db import transaction
 
 class FlightSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,8 +37,8 @@ class FlightReadSerializer(serializers.ModelSerializer):
 class TicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['id', 'user', 'flight', 'seat_number', 'price', 'status']
-        read_only_fields = ['id', 'user']
+        fields = ['id', 'flight', 'seat_number', 'price', 'status']
+        read_only_fields = ['id']
 
     def validate_price(self, value):
         if value <= 0:
@@ -48,3 +49,20 @@ class TicketSerializer(serializers.ModelSerializer):
         if self.instance is None and value != Ticket.Status.BOOKED:
             raise serializers.ValidationError("A new ticket must be created with status 'booked'.")
         return value
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    tickets = TicketSerializer(many=True, read_only=False, allow_empty=False)
+
+    class Meta:
+        model = Order
+        fields = ('id', 'user', 'created_at', 'tickets')
+        read_only_fields = ('user', 'created_at')
+
+    def create(self, validated_data):
+        tickets_data = validated_data.pop('tickets')
+        with transaction.atomic():
+            order = Order.objects.create(**validated_data)
+            for ticket_data in tickets_data:
+                Ticket.objects.create(order=order, **ticket_data)
+        return order
