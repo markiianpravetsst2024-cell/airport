@@ -4,8 +4,12 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import Country, Airport, Airline, Airplane, City
 from .serializers import CountrySerializer, AirportSerializer, AirlineSerializer, AirplaneSerializer, CitySerializer, AirportReadSerializer
+from .permissions import IsAdminOrReadOnly
+from .filters import AirportFilter, AirlineFilter, AirplaneFilter
 
 class CountryListAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         countries = Country.objects.all()
         serializer = CountrySerializer(countries, many=True)
@@ -19,6 +23,8 @@ class CountryListAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CountryDetailAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get_object(self, pk):
         return get_object_or_404(Country, pk=pk)
 
@@ -42,6 +48,8 @@ class CountryDetailAPIView(APIView):
 
 
 class CityListAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         cities = City.objects.all()
         serializer = CitySerializer(cities, many=True)
@@ -55,6 +63,8 @@ class CityListAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CityDetailAPIView(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get_object(self, pk):
         return get_object_or_404(City, pk=pk)
 
@@ -79,6 +89,9 @@ class CityDetailAPIView(APIView):
 
 class AirportViewSet(viewsets.ModelViewSet):
     queryset = Airport.objects.all()
+    permission_classes = [IsAdminOrReadOnly]
+    filterset_class = AirportFilter
+
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return AirportReadSerializer
@@ -87,9 +100,12 @@ class AirportViewSet(viewsets.ModelViewSet):
 class AirlineViewSet(viewsets.ModelViewSet):
     queryset = Airline.objects.all()
     serializer_class = AirlineSerializer
+    permission_classes = [IsAdminOrReadOnly]
+    filterset_class = AirlineFilter
 
 class AirplaneViewSet(viewsets.ModelViewSet):
     queryset = Airplane.objects.all()
     serializer_class = AirplaneSerializer
-
+    permission_classes = [IsAdminOrReadOnly]
+    filterset_class = AirplaneFilter
 

@@ -22,6 +22,14 @@ class Flight(models.Model):
     def __str__(self):
         return self.flight_number
 
+class Order(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="orders")
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Order {self.id} by {self.user.username}"
 
 class Ticket(models.Model):
     class Status(models.TextChoices):
@@ -30,7 +38,7 @@ class Ticket(models.Model):
         USED = 'used', 'Used'
         PAID = 'paid', 'Paid'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tickets")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="tickets", null=True)
     flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name="tickets")
     seat_number = models.CharField(max_length=10)
     price = models.DecimalField(max_digits=10, decimal_places=2)
