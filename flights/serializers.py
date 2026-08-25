@@ -56,13 +56,44 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('id', 'user', 'created_at', 'tickets')
-        read_only_fields = ('user', 'created_at')
+        fields = ('id', 'user', 'created_at', 'tickets', 'total_price', 'currency', 'expires_at', 'updated_at', 'payment_id', 'status', 'notes')
+        read_only_fields = ('user', 'created_at', 'status', 'total_price', 'expires_at', 'updated_at', 'payment_id')
 
     def create(self, validated_data):
         tickets_data = validated_data.pop('tickets')
+
+        seen_seats = set()
+        for ticket_data in tickets_data:
+            seat_key = (ticket_data['flight'].id, ticket_data['seat_number'])
+            if seat_key in seen_seats:
+                raise serializers.ValidationError(
+                    {"tickets": f"Seat {ticket_data['seat_number']} is duplicated within this order."}
+                )
+            seen_seats.add(seat_key)
+
         with transaction.atomic():
             order = Order.objects.create(**validated_data)
             for ticket_data in tickets_data:
+                flight = ticket_data['flight']
+                seat_number = ticket_data['seat_number']
+
+                seat_taken = Ticket.objects.select_for_update().filter(
+                    flight=flight,
+                    seat_number=seat_number,
+                    status__in=[Ticket.Status.BOOKED, Ticket.Status.PAID]
+                ).exists()
+
+                if seat_taken:
+                    raise serializers.ValidationError(
+                        {"tickets": f"Seat {seat_number} on this flight is already taken."}
+                    )
+                if flight.status in [Flight.Status.CANCELLED, Flight.Status.DEPARTED]:
+                    raise serializers.ValidationError(
+                        {"tickets": f"Cannot book a ticket for a flight with status '{flight.status}'."}
+                    )
+
                 Ticket.objects.create(order=order, **ticket_data)
+
+            order.total_price = sum(ticket['price'] for ticket in tickets_data)
+            order.save()
         return order
