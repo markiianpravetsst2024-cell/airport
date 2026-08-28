@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+from datetime import timedelta
 from airports.models import Airplane, Airport
 
 
@@ -40,7 +42,12 @@ class Order(models.Model):
     notes = models.TextField(blank=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-created_at']\
+
+    def save(self, *args, **kwargs):
+        if not self.id and not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=30)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"
@@ -60,3 +67,21 @@ class Ticket(models.Model):
 
     def __str__(self):
         return self.seat_number
+
+
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        PAID = 'paid', 'Paid'
+        FAILED = 'failed', 'Failed'
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
+    stripe_session_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Payment {self.id} for Order {self.order.id} - {self.status}"

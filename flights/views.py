@@ -4,11 +4,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import viewsets, mixins
-from .models import Flight, Ticket, Order
+from .models import Flight, Ticket, Order, Payment
 from .serializers import FlightSerializer, TicketSerializer, FlightReadSerializer, OrderSerializer
 from rest_framework.permissions import IsAuthenticated
 from airports.permissions import IsAdminOrReadOnly
 from .filters import FlightFilter, TicketFilter
+from django.utils import timezone
 
 class FlightViewSet(viewsets.ModelViewSet):
     queryset = Flight.objects.all()
@@ -36,6 +37,16 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
         if order.status == 'paid':
             return Response({'message': 'Order is already paid'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if order.status == Order.Status.EXPIRED or timezone.now() > order.expires_at:
+
+            if order.status != Order.Status.EXPIRED:
+                order.status = Order.Status.EXPIRED
+                order.save()
+                order.tickets.update(status=Ticket.Status.CANCELLED)
+
+            return Response({'message': 'Order has expired. Please create a new one.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         stripe.api_key = settings.STRIPE_SECRET_KEY
 
         domain_url = settings.DOMAIN_URL
@@ -59,7 +70,11 @@ class OrderViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.Gene
                 cancel_url=domain_url + '/api/orders/cancel/',
                 client_reference_id=str(order.id)
             )
-
+            Payment.objects.create(
+                order=order,
+                stripe_session_id=checkout_session.id,
+                amount=order.total_price
+            )
             order.payment_id = checkout_session.id
             order.save()
 
